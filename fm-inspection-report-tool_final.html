@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FM Inspection Report — Register &amp; Generator</title>
+<style>
+  :root{
+    --ink:#101820;
+    --navy:#132436;
+    --navy-2:#1c3a53;
+    --steel:#4a6178;
+    --line:#c9d2d9;
+    --paper:#ffffff;
+    --wash:#eef1f4;
+    --amber:#e07a1f;
+    --amber-dark:#b25f13;
+    --good:#2f7d4f;
+    --bad:#c0392b;
+    --mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--sans);
+    background:var(--wash);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- Shell ---------- */
+  .shell{max-width:1400px;margin:0 auto;padding:0 20px 60px;}
+  header.top{
+    background:var(--navy);
+    color:#fff;
+    padding:22px 20px;
+    margin-bottom:22px;
+  }
+  header.top .top-inner{max-width:1400px;margin:0 auto;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  header.top h1{font-size:19px;margin:0;letter-spacing:.01em;font-weight:600;}
+  header.top .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9fc1d8;margin:0 0 4px;}
+  header.top .tag{font-family:var(--mono);font-size:11px;color:#8ba3b6;}
+
+  .tabs{display:flex;gap:2px;margin-bottom:18px;border-bottom:2px solid var(--line);}
+  .tab-btn{
+    font-family:var(--mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;
+    background:none;border:none;padding:10px 18px;cursor:pointer;color:var(--steel);
+    border-bottom:2px solid transparent;margin-bottom:-2px;font-weight:600;
+  }
+  .tab-btn.active{color:var(--navy);border-bottom-color:var(--amber);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* ---------- Editor layout ---------- */
+  .editor{display:grid;grid-template-columns:minmax(340px,1fr) minmax(420px,1.15fr);gap:22px;align-items:start;}
+  @media (max-width:980px){.editor{grid-template-columns:1fr;}}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:3px;}
+  .card + .card{margin-top:16px;}
+  .card h2{
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--steel);margin:0;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--wash);
+  }
+  .card .body{padding:16px;}
+
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--navy-2);margin-bottom:5px;}
+  .field .hint{font-size:11px;color:var(--steel);margin-top:4px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  input[type=text],input[type=date],textarea,select{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:2px;
+    font-family:var(--sans);font-size:13.5px;color:var(--ink);background:#fff;
+  }
+  select{max-width:140px;cursor:pointer;}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--amber);outline-offset:0;border-color:var(--amber);}
+  textarea{resize:vertical;min-height:70px;line-height:1.45;}
+
+  .btn{
+    font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 16px;border-radius:2px;
+    border:1px solid var(--navy);background:var(--navy);color:#fff;cursor:pointer;
+  }
+  .btn:hover{background:var(--navy-2);}
+  .btn.amber{background:var(--amber);border-color:var(--amber-dark);}
+  .btn.amber:hover{background:var(--amber-dark);}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line);}
+  .btn.ghost:hover{border-color:var(--steel);}
+  .btn.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);}
+  .btn.danger:hover{background:var(--bad);color:#fff;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
+
+  /* image slots */
+  .pics{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .picslot{border:1px dashed var(--line);border-radius:3px;padding:8px;text-align:center;background:var(--wash);}
+  .picslot .label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--steel);text-transform:uppercase;margin-bottom:6px;}
+  .picslot img{max-width:100%;max-height:110px;display:block;margin:0 auto 6px;border:1px solid var(--line);background:#fff;}
+  .picslot .placeholder{height:90px;display:flex;align-items:center;justify-content:center;color:#a9b6c0;font-size:11px;margin-bottom:6px;border:1px solid var(--line);background:#fff;}
+  .picslot input[type=file]{font-size:10.5px;width:100%;}
+  .picslot .remove{font-size:10.5px;color:var(--bad);background:none;border:none;cursor:pointer;margin-top:4px;text-decoration:underline;padding:0;}
+
+  .status{font-size:12px;color:var(--good);font-family:var(--mono);min-height:16px;margin-top:2px;}
+
+  /* ---------- Preview / template replica ---------- */
+  .preview-wrap{position:sticky;top:16px;}
+  .preview-frame{background:#fff;border:1px solid var(--line);box-shadow:0 1px 3px rgba(16,24,32,.08);}
+  .preview-toolbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--wash);border-bottom:1px solid var(--line);}
+  .preview-toolbar .fmt-note{font-family:var(--mono);font-size:10.5px;color:var(--steel);}
+
+  #printArea{padding:18px;}
+  .doc{
+    width:100%;border:1.5px solid #111;
+    font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:#111;
+    display:flex;flex-direction:column;background:#fff;border-collapse:collapse;
+  }
+  /* On screen, thead/tbody/tr/td are structural only — their children behave as
+     direct flex items of .doc, exactly as before. */
+  .doc thead, .doc tbody, .doc tr, .doc td{display:contents;}
+  .doc-row{display:flex;border-bottom:1px solid #111;}
+  .doc-row:last-child{border-bottom:none;}
+  .doc-cell{padding:5px 7px;border-right:1px solid #111;}
+  .doc-cell:last-child{border-right:none;}
+
+  .doc-head{display:flex;align-items:stretch;flex:0 0 auto;border-bottom:1px solid #111;}
+  .doc-head .brand{width:26%;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #111;padding:6px;text-align:center;}
+  .doc-head .brand .co-logo{max-width:175px;max-height:46px;width:auto;height:auto;display:block;}
+  .doc-head .brand .proj{margin-top:6px;font-weight:700;font-size:10.5px;background:#111;color:#fff;padding:2px 8px;border-radius:2px;}
+  .doc-head .titleblock{flex:1;display:flex;flex-direction:column;}
+  .doc-head .titleblock .t1{flex:1;display:flex;}
+  .doc-head .titleblock .t1 .title{flex:1;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border-right:1px solid #111;}
+  .doc-head .titleblock .t1 .pageno{width:34%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;}
+  .doc-head .titleblock .t2{display:flex;border-top:1px solid #111;}
+  .doc-head .titleblock .t2 .kv{flex:1;padding:3px 7px;border-right:1px solid #111;}
+  .doc-head .titleblock .t2 .kv:last-child{border-right:none;}
+  .doc-head .titleblock .t2 .kv .k{font-weight:700;font-size:9.5px;text-transform:uppercase;display:block;}
+  .doc-head .titleblock .t2 .kv .v{font-size:11px;}
+
+  .doc-desc{display:flex;flex:0 0 auto;border-bottom:1px solid #111;}
+  .doc-desc .k{width:16%;font-weight:700;padding:5px 7px;border-right:1px solid #111;text-transform:uppercase;font-size:10.5px;display:flex;align-items:center;}
+  .doc-desc .v{flex:1;padding:5px 7px;font-size:11.5px;display:flex;align-items:center;}
+
+  /* Photo grid keeps a fixed proportion (matches its 160mm printed height at 186mm wide).
+     The notes block sizes to its own text, so a short report ends right after the
+     sign-off row instead of being stretched to fill a whole page. */
+  /* Grid shape and height are set by JS via --pic-cols / --pic-rows / --pics-ar
+     so the layout adapts to 1–10 photos. Inner borders are drawn on every cell,
+     then the outer edges are cleared by the rules below. */
+  .doc-pics{display:grid;grid-template-columns:repeat(var(--pic-cols,2),1fr);grid-template-rows:repeat(var(--pic-rows,2),1fr);flex:0 0 auto;aspect-ratio:var(--pics-ar,186/160);border-bottom:1px solid #111;}
+  .doc-pic{border-right:1px solid #111;border-bottom:1px solid #111;padding:4mm;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  .doc-pic.last-col{border-right:none;}
+  .doc-pic.last-row{border-bottom:none;}
+  .doc-pic .cap{font-weight:700;font-size:9.5px;text-transform:uppercase;margin-bottom:4px;flex:0 0 auto;}
+  .doc-pic .imgbox{flex:1 1 auto;min-height:0;padding:2px;background:#fff;}
+  .doc-pic img{width:100%;height:100%;object-fit:cover;object-position:center;border:1px solid #ccc;display:block;box-sizing:border-box;}
+  .doc-pic img.fit-contain{object-fit:contain;background:#f5f6f7;}
+  .doc-pic .ph{width:100%;height:100%;border:1px dashed #bbb;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:10px;box-sizing:border-box;}
+
+  .doc-notes{display:flex;flex:0 0 auto;min-height:38mm;border-bottom:1px solid #111;}
+  .doc-notes .col{flex:1;padding:5px 8px;font-size:10.8px;line-height:1.25;}
+  .doc-notes .col:first-child{border-right:1px solid #111;}
+  .doc-notes .col .hd{font-weight:700;text-transform:uppercase;font-size:10px;line-height:1.2;margin:0 0 3px;}
+  .doc-notes .col .txt{white-space:pre-wrap;}
+
+  .doc-sign{display:flex;flex:0 0 auto;}
+  .doc-sign .c{flex:1;padding:5px 7px;border-right:1px solid #111;font-size:10px;min-height:34px;}
+  .doc-sign .c:last-child{border-right:none;}
+  .doc-sign .c .k{font-weight:700;text-transform:uppercase;font-size:9px;}
+  .doc-sign .c .v{margin-top:8px;}
+
+  @media print{
+    html,body{margin:0;padding:0;}
+    body{font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff;}
+    /* No forced page height — the box ends where the content ends, so a short report
+       closes its border right under the sign-off row. Long content still flows onto
+       further pages, since nothing here caps the height either. */
+    .doc{width:186mm;display:table;border-spacing:0;
+         box-decoration-break:clone;-webkit-box-decoration-break:clone;}
+    /* Real table semantics for print: the header (logo/title/equipment row) repeats
+       on every printed page the report spans. */
+    .doc thead{display:table-header-group;}
+    .doc tbody{display:table-row-group;}
+    .doc tr{display:table-row;}
+    .doc td{display:table-cell;padding:0;border:none;vertical-align:top;}
+    /* Fixed physical size for the photo grid; the notes block sizes to its own text. */
+    .doc-pics{flex:0 0 auto;height:var(--pics-h,160mm);aspect-ratio:auto;}
+    .doc-notes{flex:0 0 auto;min-height:38mm;}
+    @page{size:A4;margin:12mm;}
+  }
+
+  /* ---------- Photo fit toggle ---------- */
+  .fitrow{display:flex;gap:6px;margin-top:6px;}
+  .fitbtn{
+    flex:1;font-size:10.5px;padding:6px 4px;border:1px solid var(--line);background:var(--wash);
+    color:var(--steel);cursor:pointer;border-radius:2px;
+  }
+  .fitbtn:hover{border-color:var(--steel);}
+  .fitbtn.active{background:var(--amber);border-color:var(--amber-dark);color:#fff;font-weight:600;}
+
+  /* ---------- Register list ---------- */
+  .register-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .register-toolbar input[type=text]{max-width:280px;}
+  table.reg{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);}
+  table.reg th{
+    text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--steel);background:var(--wash);padding:9px 10px;border-bottom:1px solid var(--line);
+  }
+  table.reg td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top;}
+  table.reg tr:last-child td{border-bottom:none;}
+  table.reg .refno{font-family:var(--mono);font-size:12px;color:var(--navy-2);}
+  table.reg .rowbtns{display:flex;gap:6px;}
+  table.reg .rowbtns button{font-size:11px;padding:5px 9px;}
+  .empty{padding:40px 20px;text-align:center;color:var(--steel);font-size:13px;}
+
+
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div>
+      <p class="eyebrow">ConocoPhillips · KBB TAR 2026</p>
+      <h1>FM Inspection Report — Register &amp; Generator</h1>
+    </div>
+    <div class="tag">Template ref: FM-KBBTAR26-DEF001</div>
+  </div>
+</header>
+
+<div class="shell">
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="editor">New / Edit Report</button>
+    <button class="tab-btn" data-tab="register">Register (<span id="regCount">0</span>)</button>
+  </div>
+
+  <!-- ============ EDITOR TAB ============ -->
+  <div class="tab-panel active" id="tab-editor">
+    <div class="editor">
+
+      <!-- FORM -->
+      <div>
+        <div class="card">
+          <h2>Report Identification</h2>
+          <div class="body">
+            <div class="row2">
+              <div class="field">
+                <label for="f-equip">Equipment/Line No.</label>
+                <input type="text" id="f-equip" placeholder="e.g. E-02004">
+              </div>
+              <div class="field">
+                <label for="f-pmt">FM Tag</label>
+                <input type="text" id="f-pmt" placeholder="e.g. - or FM-1234">
+              </div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label for="f-ref">Ref No.</label>
+                <input type="text" id="f-ref" placeholder="FM-KBBTAR26-DEF001">
+              </div>
+              <div class="field">
+                <label for="f-page">Page No.</label>
+                <input type="text" id="f-page" placeholder="1 of 1" value="1 of 1">
+              </div>
+            </div>
+            <div class="field">
+              <label for="f-desc">Description</label>
+              <input type="text" id="f-desc" placeholder="e.g. Channel Head 1">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Photos</h2>
+          <div class="body">
+            <div class="field">
+              <label for="f-piccount">Number of photos (1–10)</label>
+              <select id="f-piccount">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4" selected>4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+              </select>
+              <p class="hint">The report grid adjusts automatically. Reducing the count removes the photos beyond it.</p>
+            </div>
+            <div class="pics" id="picGrid"></div>
+            <p class="hint">Images are resized automatically before saving to keep the register lightweight.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Finding</h2>
+          <div class="body">
+            <div class="field">
+              <textarea id="f-finding" rows="6" placeholder="Picture 1: General view...&#10;Picture 2 &amp; 3: Detailed view...&#10;Overall: ..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Remark &amp; Conclusion</h2>
+          <div class="body">
+            <div class="field">
+              <label for="f-remark">Remark</label>
+              <textarea id="f-remark" rows="4" placeholder="Operating Pressure: ...&#10;Operating Temp.: ...&#10;Medium: ..."></textarea>
+            </div>
+            <div class="field">
+              <label for="f-conclusion">Conclusion / Recommendations</label>
+              <textarea id="f-conclusion" rows="4" placeholder="1. ..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Sign-off</h2>
+          <div class="body">
+            <div class="row2">
+              <div class="field"><label>Inspected by</label><input type="text" id="f-insp-name"></div>
+              <div class="field"><label>Date</label><input type="date" id="f-insp-date"></div>
+            </div>
+            <div class="row2">
+              <div class="field"><label>Prepared by</label><input type="text" id="f-prep-name"></div>
+              <div class="field"><label>Date</label><input type="date" id="f-prep-date"></div>
+            </div>
+            <div class="row2">
+              <div class="field"><label>Reviewed by</label><input type="text" id="f-rev-name"></div>
+              <div class="field"><label>Date</label><input type="date" id="f-rev-date"></div>
+            </div>
+            <div class="row2">
+              <div class="field"><label>Approved by</label><input type="text" id="f-app-name"></div>
+              <div class="field"><label>Date</label><input type="date" id="f-app-date"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="body">
+            <div class="btn-row">
+              <button class="btn amber" id="btnSave">Save to register</button>
+              <button class="btn ghost" id="btnNew">Clear / start new</button>
+              <button class="btn ghost" id="btnPrint">Print / export PDF</button>
+            </div>
+            <div class="status" id="saveStatus"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREVIEW -->
+      <div class="preview-wrap">
+        <div class="preview-frame">
+          <div class="preview-toolbar">
+            <strong style="font-size:12px;">Live preview</strong>
+            <span class="fmt-note">matches FM Inspection Report layout</span>
+          </div>
+          <div id="printArea">
+            <table class="doc">
+              <thead><tr><td>
+              <div class="doc-head">
+                <div class="brand">
+                  <img class="co-logo" src="data:image/png;base64,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fP/991L5z89CMYZPP/00euzDDz9MyRiaChqN3GVlZZKbmyu//fabfP755zJ79myzKAjFN998I3/99Zfk5eWt04vTUKioqDBzDXGysrLkzz//lF9++UUWLlxo2u+//y7Lly+X/Pz8hOvBOu6www7SqlUr2WCDDaRTp06mr7VFJBKR7Oxseeyxx+T22283ZLXkBa+88orp37YJEyZIUVGROfbHH3/I8OHDo8e23HLLmDFA/jfffNP0O3PmTCkuLo4eCyIanNwFBQUya9Ys+fe//y1jx46VgQMHSufOnWXjjTeWtm3byqabbipbbLGFDBo0SA444ACzEIWFhX43inrEJ598YuZ69913l5133lm222472WqrraRfv36mbbPNNoY0Bx98sFx77bXmfEjoYtGiRea8jIwM0zbZZBNZtmxZzDk1AUrm9NNPl2bNmpl+evToYSywxYsvvhi9B23//feXlf/8kgxKaMiQIdFjyJEdA+O9+eabjZxxrF27dka2UGxBRYOSe/78+XLkkUdKZmamrL/++jGLFK+xwAhVbYREUXM8+eST1eY+UcMidu3aVa666qqoxQS//vprDLnbt29fK8v9008/GYXv3vOKK66IHn/ppZdijqGUEpG7e/fuUdnBag8bNizm2jFjxhhvJKhoEHLjyr322mvGTXInF/K2bt1aNt98c+nSpYt069bNWHH+3aZNG2nRooWccsopMUKkqH889dRTMeuC4mUdWA8aLjaWzlpTe87ll19uSAPqi9yQEY+Oe9Hw5rDWFrUlN5Z74sSJZtz0y+f5559vwsOgIuXkhtiPPvqodOzYMWZROnToIIcffrjcfffdMmfOHJMYIb777rvv5L333pP77rtPTj31VHn55ZelSn9gIKXwyb3LLrvIt99+Kz///LNpX3/9tTzxxBNy0EEHGWVsz4P41mWuL3Kz1l999ZWcccYZctxxx8n9998fQ8Dakhvw9ylTpsixxx5rPI+lS4P9P5SmnNwIBvGbq/UHDBggb7zxhnGJ3GSJCxYZi11aWuofUtQzfHJjOX1g+SDrMcccI82bNzfnsaYXXnihOV5f5LbAI1ixYkU1+agLuQHGhn7L14H/Jiml5CZZgTDYyUYYSJRhoesCBI1M55IlS+Tjjz82mdU777xTHnzwQeMFLF682Bz3kz6AhUUQaWR4rVvJ+VipF154wfSF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" alt="ConocoPhillips">
+                  <div class="proj">KBB TAR 2026</div>
+                </div>
+                <div class="titleblock">
+                  <div class="t1">
+                    <div class="title">FM INSPECTION REPORT</div>
+                    <div class="pageno">PAGE NO.: <span id="p-page">1 of 1</span></div>
+                  </div>
+                  <div class="t2">
+                    <div class="kv"><span class="k">Equipment/Line No.</span><span class="v" id="p-equip">&nbsp;</span></div>
+                    <div class="kv"><span class="k">FM Tag</span><span class="v" id="p-pmt">&nbsp;</span></div>
+                    <div class="kv"><span class="k">Ref No.</span><span class="v" id="p-ref">&nbsp;</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="doc-desc">
+                <div class="k">Description</div>
+                <div class="v" id="p-desc">&nbsp;</div>
+              </div>
+              </td></tr></thead>
+              <tbody><tr><td>
+
+              <div class="doc-pics" id="p-pics"></div>
+
+              <div class="doc-notes">
+                <div class="col">
+                  <div class="hd">Finding</div>
+                  <div class="txt" id="p-finding"></div>
+                </div>
+                <div class="col">
+                  <div class="hd">Remark</div>
+                  <div class="txt" id="p-remark"></div>
+                  <div class="hd" style="margin-top:7px;">Conclusion / Recommendations</div>
+                  <div class="txt" id="p-conclusion"></div>
+                </div>
+              </div>
+
+              <div class="doc-sign">
+                <div class="c"><div class="k">Inspected by</div><div class="v" id="p-insp"></div></div>
+                <div class="c"><div class="k">Prepared by</div><div class="v" id="p-prep"></div></div>
+                <div class="c"><div class="k">Reviewed by</div><div class="v" id="p-rev"></div></div>
+                <div class="c"><div class="k">Approved by</div><div class="v" id="p-app"></div></div>
+              </div>
+              </td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ REGISTER TAB ============ -->
+  <div class="tab-panel" id="tab-register">
+    <div class="register-toolbar">
+      <input type="text" id="regSearch" placeholder="Search by ref no, equipment no, description...">
+      <span class="hint" id="regHint" style="font-size:12px;color:var(--steel);"></span>
+    </div>
+    <div class="card">
+      <div id="regTableWrap"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "fm-inspection-reports";
+  var reports = [];      // array of report objects
+  var editingId = null;  // ref no of report currently loaded in the editor
+  var MAX_PICS = 10;
+  var picCount = 4;                        // how many photo slots the report shows
+  var pics = new Array(MAX_PICS).fill(null);   // dataURLs, one per slot
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  // ---------- Tabs ----------
+  document.querySelectorAll(".tab-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      document.querySelectorAll(".tab-btn").forEach(function(b){ b.classList.remove("active"); });
+      document.querySelectorAll(".tab-panel").forEach(function(p){ p.classList.remove("active"); });
+      btn.classList.add("active");
+      $("tab-" + btn.dataset.tab).classList.add("active");
+      if (btn.dataset.tab === "register") renderRegisterTable();
+    });
+  });
+
+  // ---------- Picture slots ----------
+  var picFit = new Array(MAX_PICS).fill("cover"); // "cover" = fill frame (may crop edges), "contain" = show whole photo
+
+  // Photo cells keep a constant size regardless of how many there are:
+  // always 2 columns, each row a fixed height. More photos just means more rows,
+  // which the printer splits across pages like any other overflow.
+  var PIC_COLS = 2, PIC_ROW_MM = 80;
+
+  function picLayout(){
+    var cols = PIC_COLS;
+    var rows = Math.ceil(picCount / cols);
+    var remainder = picCount % cols;
+    return {
+      cols: cols,
+      rows: rows,
+      h: rows * PIC_ROW_MM,
+      // An odd final photo stretches across the row so the grid stays a clean
+      // rectangle with no gap or dangling border.
+      lastSpan: remainder === 0 ? 1 : (cols - remainder + 1)
+    };
+  }
+
+  // Builds a .doc-pics block for photos [from, to). Used for both the live
+  // preview (whole set) and printing (one page's worth of rows at a time).
+  function buildPicsBlock(d, from, to, opts){
+    opts = opts || {};
+    var lay = picLayout();
+    var rowsHere = Math.ceil((to - from) / lay.cols);
+    var el = d.createElement("div");
+    el.className = "doc-pics";
+    el.style.setProperty("--pic-cols", lay.cols);
+    el.style.setProperty("--pic-rows", rowsHere);
+    if (opts.heightPx){
+      el.style.height = opts.heightPx + "px";
+      el.style.aspectRatio = "auto";
+    } else {
+      el.style.setProperty("--pics-ar", "186/" + (rowsHere * PIC_ROW_MM));
+      el.style.setProperty("--pics-h", (rowsHere * PIC_ROW_MM) + "mm");
+    }
+    for (var i = from; i < to; i++){
+      var pos = i - from;
+      var cell = d.createElement("div");
+      cell.className = "doc-pic";
+      var isGlobalLast = (i === picCount - 1);
+      var span = (isGlobalLast && lay.lastSpan > 1) ? lay.lastSpan : 1;
+      if (span > 1) cell.style.gridColumn = "span " + span;
+      if ((pos % lay.cols) + span === lay.cols) cell.classList.add("last-col");
+      if (Math.floor(pos / lay.cols) === rowsHere - 1) cell.classList.add("last-row");
+
+      var cap = d.createElement("div");
+      cap.className = "cap";
+      cap.textContent = "Picture " + (i + 1);
+      cell.appendChild(cap);
+
+      var imgbox = d.createElement("div");
+      imgbox.className = "imgbox";
+      if (pics[i]){
+        var img = d.createElement("img");
+        img.src = pics[i];
+        if (picFit[i] === "contain") img.className = "fit-contain";
+        imgbox.appendChild(img);
+      } else {
+        var ph = d.createElement("div");
+        ph.className = "ph";
+        ph.textContent = "No image";
+        imgbox.appendChild(ph);
+      }
+      cell.appendChild(imgbox);
+      el.appendChild(cell);
+    }
+    return el;
+  }
+
+  function buildPicGrid(){
+    var grid = $("picGrid");
+    grid.innerHTML = "";
+    for (var i = 0; i < picCount; i++){
+      (function(idx){
+        var slot = document.createElement("div");
+        slot.className = "picslot";
+        slot.innerHTML =
+          '<div class="label">Picture ' + (idx + 1) + '</div>' +
+          '<div id="picHolder' + idx + '"></div>' +
+          '<input type="file" accept="image/*" id="picFile' + idx + '">' +
+          '<div class="fitrow" id="picFitRow' + idx + '" style="display:none;">' +
+            '<button type="button" class="fitbtn" id="picFitCover' + idx + '">Fill frame</button>' +
+            '<button type="button" class="fitbtn" id="picFitContain' + idx + '">Show full photo</button>' +
+          '</div>' +
+          '<button type="button" class="remove" id="picRemove' + idx + '" style="display:none;">Remove</button>';
+        grid.appendChild(slot);
+
+        $("picFile" + idx).addEventListener("change", function(e){
+          var file = e.target.files && e.target.files[0];
+          if (!file) return;
+          resizeImageToDataUrl(file, 900, 0.78, function(dataUrl){
+            pics[idx] = dataUrl;
+            picFit[idx] = "cover";
+            refreshPicSlot(idx);
+            updatePreview();
+          });
+        });
+
+        $("picRemove" + idx).addEventListener("click", function(){
+          pics[idx] = null;
+          $("picFile" + idx).value = "";
+          refreshPicSlot(idx);
+          updatePreview();
+        });
+
+        $("picFitCover" + idx).addEventListener("click", function(){
+          picFit[idx] = "cover";
+          refreshPicSlot(idx);
+          updatePreview();
+        });
+        $("picFitContain" + idx).addEventListener("click", function(){
+          picFit[idx] = "contain";
+          refreshPicSlot(idx);
+          updatePreview();
+        });
+      })(i);
+    }
+    for (var j = 0; j < picCount; j++) refreshPicSlot(j);
+  }
+
+  function refreshPicSlot(idx){
+    var holder = $("picHolder" + idx);
+    var rm = $("picRemove" + idx);
+    var fitRow = $("picFitRow" + idx);
+    var btnCover = $("picFitCover" + idx);
+    var btnContain = $("picFitContain" + idx);
+    if (!holder) return;
+    if (pics[idx]){
+      holder.innerHTML = "";
+      var img = document.createElement("img");
+      img.src = pics[idx];
+      holder.appendChild(img);
+      if (rm) rm.style.display = "inline";
+      if (fitRow) fitRow.style.display = "flex";
+      if (btnCover) btnCover.classList.toggle("active", picFit[idx] !== "contain");
+      if (btnContain) btnContain.classList.toggle("active", picFit[idx] === "contain");
+    } else {
+      holder.innerHTML = '<div class="placeholder">No image</div>';
+      if (rm) rm.style.display = "none";
+      if (fitRow) fitRow.style.display = "none";
+    }
+  }
+
+  function resizeImageToDataUrl(file, maxWidth, quality, cb){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var w = img.width, h = img.height;
+        if (w > maxWidth){
+          h = Math.round(h * (maxWidth / w));
+          w = maxWidth;
+        }
+        var canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        cb(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = function(){ cb(null); };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ---------- Live preview ----------
+  function textOr(v){ return (v && v.trim().length) ? escapeHtml(v) : "&nbsp;"; }
+  function escapeHtml(s){
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function nl2br(s){
+    return escapeHtml(s || "").replace(/\n/g, "<br>");
+  }
+  function fmtDate(v){
+    if (!v) return "";
+    var parts = v.split("-");
+    if (parts.length !== 3) return v;
+    return parts[2] + "/" + parts[1] + "/" + parts[0];
+  }
+
+  function updatePreview(){
+    $("p-equip").innerHTML = textOr($("f-equip").value);
+    $("p-pmt").innerHTML = textOr($("f-pmt").value);
+    $("p-ref").innerHTML = textOr($("f-ref").value);
+    $("p-page").textContent = $("f-page").value || "1 of 1";
+    $("p-desc").innerHTML = textOr($("f-desc").value);
+    $("p-finding").innerHTML = nl2br($("f-finding").value);
+    $("p-remark").innerHTML = nl2br($("f-remark").value);
+    $("p-conclusion").innerHTML = nl2br($("f-conclusion").value);
+
+    var signMap = [
+      ["p-insp", "f-insp-name", "f-insp-date"],
+      ["p-prep", "f-prep-name", "f-prep-date"],
+      ["p-rev",  "f-rev-name",  "f-rev-date"],
+      ["p-app",  "f-app-name",  "f-app-date"]
+    ];
+    signMap.forEach(function(m){
+      var name = $(m[1]).value.trim();
+      var date = fmtDate($(m[2]).value);
+      var out = "";
+      if (name) out += escapeHtml(name);
+      if (date) out += (out ? "<br>" : "") + date;
+      $(m[0]).innerHTML = out;
+    });
+
+    var picsWrap = $("p-pics");
+    var fresh = buildPicsBlock(document, 0, picCount);
+    fresh.id = "p-pics";
+    picsWrap.parentNode.replaceChild(fresh, picsWrap);
+  }
+
+  ["f-equip","f-pmt","f-ref","f-page","f-desc","f-finding","f-remark","f-conclusion",
+   "f-insp-name","f-insp-date","f-prep-name","f-prep-date","f-rev-name","f-rev-date","f-app-name","f-app-date"
+  ].forEach(function(id){
+    $(id).addEventListener("input", updatePreview);
+  });
+
+  // ---------- Storage ----------
+  function loadReports(cb){
+    if (!window.storage){ reports = []; cb(); return; }
+    window.storage.get(STORAGE_KEY, false).then(function(res){
+      try {
+        reports = res && res.value ? JSON.parse(res.value) : [];
+      } catch(e){ reports = []; }
+      cb();
+    }).catch(function(){
+      reports = [];
+      cb();
+    });
+  }
+
+  function persistReports(cb){
+    if (!window.storage){
+      setStatus("Storage unavailable in this environment — changes won't be saved.", true);
+      if (cb) cb(false);
+      return;
+    }
+    window.storage.set(STORAGE_KEY, JSON.stringify(reports), false).then(function(res){
+      if (cb) cb(!!res);
+    }).catch(function(){
+      setStatus("Could not save — please try again.", true);
+      if (cb) cb(false);
+    });
+  }
+
+  function setStatus(msg, isError){
+    var el = $("saveStatus");
+    el.textContent = msg;
+    el.style.color = isError ? "var(--bad)" : "var(--good)";
+    if (msg) setTimeout(function(){ if (el.textContent === msg) el.textContent = ""; }, 4000);
+  }
+
+  // ---------- Ref no suggestion ----------
+  function nextRefNo(){
+    var maxN = 0;
+    reports.forEach(function(r){
+      var m = /DEF(\d+)\s*$/i.exec(r.ref || "");
+      if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
+    });
+    var n = maxN + 1;
+    var padded = (n < 100 ? ("00" + n).slice(-3) : String(n));
+    return "FM-KBBTAR26-DEF" + padded;
+  }
+
+  // ---------- Form <-> object ----------
+  function collectForm(){
+    return {
+      ref: $("f-ref").value.trim(),
+      equip: $("f-equip").value.trim(),
+      pmt: $("f-pmt").value.trim(),
+      page: $("f-page").value.trim() || "1 of 1",
+      desc: $("f-desc").value.trim(),
+      finding: $("f-finding").value,
+      remark: $("f-remark").value,
+      conclusion: $("f-conclusion").value,
+      inspName: $("f-insp-name").value.trim(), inspDate: $("f-insp-date").value,
+      prepName: $("f-prep-name").value.trim(), prepDate: $("f-prep-date").value,
+      revName:  $("f-rev-name").value.trim(),  revDate:  $("f-rev-date").value,
+      appName:  $("f-app-name").value.trim(),  appDate:  $("f-app-date").value,
+      pics: pics.slice(),
+      picFit: picFit.slice(),
+      picCount: picCount,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function fillForm(r){
+    $("f-ref").value = r.ref || "";
+    $("f-equip").value = r.equip || "";
+    $("f-pmt").value = r.pmt || "";
+    $("f-page").value = r.page || "1 of 1";
+    $("f-desc").value = r.desc || "";
+    $("f-finding").value = r.finding || "";
+    $("f-remark").value = r.remark || "";
+    $("f-conclusion").value = r.conclusion || "";
+    $("f-insp-name").value = r.inspName || ""; $("f-insp-date").value = r.inspDate || "";
+    $("f-prep-name").value = r.prepName || ""; $("f-prep-date").value = r.prepDate || "";
+    $("f-rev-name").value = r.revName || "";   $("f-rev-date").value = r.revDate || "";
+    $("f-app-name").value = r.appName || "";   $("f-app-date").value = r.appDate || "";
+    picCount = Math.min(MAX_PICS, Math.max(1, parseInt(r.picCount, 10) || 4));
+    $("f-piccount").value = String(picCount);
+    pics = (r.pics || []).slice();
+    while (pics.length < MAX_PICS) pics.push(null);
+    picFit = (r.picFit || []).slice();
+    while (picFit.length < MAX_PICS) picFit.push("cover");
+    buildPicGrid();
+    updatePreview();
+  }
+
+  function clearForm(){
+    editingId = null;
+    fillForm({ ref: nextRefNo(), page: "1 of 1" });
+  }
+
+  // ---------- Buttons ----------
+  $("btnNew").addEventListener("click", clearForm);
+
+  // ---------- Print: manual pagination so each page header shows its own "N of M" ----------
+  var M_FIND = "\u0001HD_FIND", M_REM = "\u0001HD_REM", M_CON = "\u0001HD_CON";
+  var HD_FIND_HTML = '<div class="hd">Finding</div>';
+  var HD_REM_HTML  = '<div class="hd">Remark</div>';
+  var HD_CON_HTML  = '<div class="hd" style="margin-top:7px;">Conclusion / Recommendations</div>';
+
+  var PRINT_CSS = [
+    "body{margin:0;padding:0;background:#fff;}",
+    ".doc{width:186mm;margin:0 auto;}",
+    "@media screen{.page{margin-bottom:8mm;}}",
+    "@media print{",
+    "  .doc{display:flex !important;flex-direction:column !important;}",
+    "  .page{break-after:page;page-break-after:always;margin:0;}",
+    "  .page:last-child{break-after:auto;page-break-after:auto;}",
+    "}",
+    ".doc-pics{height:var(--pics-h,160mm);aspect-ratio:auto;}",
+    ".doc-notes{min-height:0;}",
+    ".doc-notes .col{overflow:hidden;}",
+    "@page{size:A4;margin:12mm;}"
+  ].join("\n");
+
+  // Split into words / whitespace / <br> tokens. Joining the pieces back with ""
+  // reproduces the original exactly, so text can be cut at any token boundary.
+  function tokenize(html){
+    if (!html) return [];
+    return html.split(/(<br\s*\/?>|\s+)/g).filter(function(t){ return t !== "" && t !== undefined; });
+  }
+
+  function renderCol(tokens, from, to){
+    var out = "", buf = "";
+    function flush(){ if (buf){ out += '<div class="txt">' + buf + "</div>"; buf = ""; } }
+    for (var i = from; i < to; i++){
+      var t = tokens[i];
+      if (t === M_FIND){ flush(); out += HD_FIND_HTML; }
+      else if (t === M_REM){ flush(); out += HD_REM_HTML; }
+      else if (t === M_CON){ flush(); out += HD_CON_HTML; }
+      else buf += t;
+    }
+    flush();
+    return out;
+  }
+
+  // Largest token count that still fits the column box.
+  function fitCount(colEl, tokens, startIdx){
+    if (startIdx >= tokens.length) return tokens.length;
+    colEl.innerHTML = renderCol(tokens, startIdx, tokens.length);
+    if (colEl.scrollHeight <= colEl.clientHeight) return tokens.length;
+    var lo = startIdx, hi = tokens.length, best = startIdx;
+    while (lo <= hi){
+      var mid = Math.floor((lo + hi) / 2);
+      colEl.innerHTML = renderCol(tokens, startIdx, mid);
+      if (colEl.scrollHeight <= colEl.clientHeight){ best = mid; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    if (best <= startIdx) best = startIdx + 1; // always make progress
+    return Math.min(best, tokens.length);
+  }
+
+  function paginateAndPrint(win){
+    var d = win.document;
+    var host = d.getElementById("pages");
+    if (!host) return;
+
+    var probe = d.createElement("div");
+    probe.style.cssText = "position:absolute;visibility:hidden;width:186mm;height:273mm;";
+    d.body.appendChild(probe);
+    var PAGE_H = probe.offsetHeight;
+    probe.style.height = PIC_ROW_MM + "mm";
+    var ROW_H = probe.offsetHeight;
+    probe.style.height = "38mm";
+    var MIN_NOTES_H = probe.offsetHeight;
+    d.body.removeChild(probe);
+
+    var srcHead = document.querySelector("#printArea .doc-head");
+    var srcDesc = document.querySelector("#printArea .doc-desc");
+    var srcSign = document.querySelector("#printArea .doc-sign");
+
+    var leftTokens  = [M_FIND].concat(tokenize($("p-finding").innerHTML));
+    var rightTokens = [M_REM].concat(tokenize($("p-remark").innerHTML), [M_CON], tokenize($("p-conclusion").innerHTML));
+
+    var lay = picLayout();
+    var totalPicRows = lay.rows;
+
+    function makePage(){
+      var el = d.createElement("div");
+      el.className = "doc page";
+      el.appendChild(d.importNode(srcHead, true));
+      el.appendChild(d.importNode(srcDesc, true));
+      var notes = d.createElement("div");
+      notes.className = "doc-notes";
+      var c1 = d.createElement("div"); c1.className = "col";
+      var c2 = d.createElement("div"); c2.className = "col";
+      notes.appendChild(c1); notes.appendChild(c2);
+      return { el: el, notes: notes, c1: c1, c2: c2, hasNotes: false };
+    }
+
+    var li = 0, ri = 0, rowIdx = 0, pages = [], notesPlaced = false, guard = 0;
+    while (guard++ < 80){
+      var photosLeft = rowIdx < totalPicRows;
+      var notesLeft  = (li < leftTokens.length) || (ri < rightTokens.length) || !notesPlaced;
+      if (!photosLeft && !notesLeft) break;
+
+      var p = makePage();
+      host.appendChild(p.el);
+      var avail = PAGE_H - p.el.offsetHeight;
+      if (avail < 40){ host.removeChild(p.el); break; }
+
+      // Fill this page with as many whole photo rows as fit, at their fixed size.
+      if (photosLeft){
+        // Always place at least one row so the loop can't stall on a tight page.
+        var canRows = Math.max(1, Math.floor(avail / ROW_H));
+        var rowsHere = Math.min(canRows, totalPicRows - rowIdx);
+        var from = rowIdx * lay.cols;
+        var to = Math.min(picCount, (rowIdx + rowsHere) * lay.cols);
+        p.el.appendChild(buildPicsBlock(d, from, to, { heightPx: rowsHere * ROW_H }));
+        rowIdx += rowsHere;
+        avail -= rowsHere * ROW_H;
+      }
+
+      // Notes only start once every photo has been placed.
+      if (rowIdx >= totalPicRows && avail >= MIN_NOTES_H){
+        p.el.appendChild(p.notes);
+        p.hasNotes = true;
+        notesPlaced = true;
+        p.notes.style.height = avail + "px";
+        var nl = fitCount(p.c1, leftTokens, li);
+        var nr = fitCount(p.c2, rightTokens, ri);
+        p.c1.innerHTML = renderCol(leftTokens, li, nl);
+        p.c2.innerHTML = renderCol(rightTokens, ri, nr);
+        li = nl; ri = nr;
+      }
+
+      pages.push(p);
+    }
+
+    if (!pages.length){ // nothing to lay out — still print one page
+      var only = makePage();
+      host.appendChild(only.el);
+      only.el.appendChild(only.notes);
+      only.hasNotes = true;
+      only.notes.style.minHeight = "38mm";
+      pages.push(only);
+    }
+
+    // Sign-off goes on the final page; if it no longer fits, it gets its own page.
+    var last = pages[pages.length - 1];
+    last.notes.style.height = "auto";
+    last.notes.style.minHeight = "38mm";
+    last.el.appendChild(d.importNode(srcSign, true));
+    if (last.el.offsetHeight > PAGE_H + 2){
+      last.el.removeChild(last.el.lastChild);
+      last.notes.style.height = (PAGE_H - (last.el.offsetHeight - last.notes.offsetHeight)) + "px";
+      var extra = makePage();
+      host.appendChild(extra.el);
+      extra.el.appendChild(extra.notes);
+      extra.notes.style.minHeight = "0";
+      extra.notes.style.height = "auto";
+      extra.el.appendChild(d.importNode(srcSign, true));
+      pages.push(extra);
+    }
+
+    // Stamp "N of M" into each page's own header.
+    var total = pages.length;
+    pages.forEach(function(pg, i){
+      var box = pg.el.querySelector(".pageno");
+      if (box) box.innerHTML = "PAGE NO.: " + (i + 1) + " of " + total;
+    });
+
+    win.focus();
+    win.print();
+  }
+
+  function printReport(){
+    var ref = $("f-ref").value.trim() || "FM-Inspection-Report";
+    var win = window.open("", "_blank");
+    if (!win){
+      setStatus("Pop-up blocked — please allow pop-ups for this page, then try Print again.", true);
+      return;
+    }
+    var pageCss = document.querySelector("style").textContent;
+    var doc = win.document;
+    doc.open();
+    doc.write(
+      "<!DOCTYPE html><html><head><meta charset='UTF-8'>" +
+      "<title>" + ref.replace(/[<>&]/g, "") + "</title>" +
+      "<style>" + pageCss + "</style>" +
+      "<style>" + PRINT_CSS + "</style>" +
+      "</head><body><div id='pages'></div></body></html>"
+    );
+    doc.close();
+
+    function go(){
+      var imgs = document.querySelectorAll("#printArea img");
+      var pending = 0, done = false;
+      function ready(){
+        if (done) return;
+        done = true;
+        setTimeout(function(){ paginateAndPrint(win); }, 60);
+      }
+      Array.prototype.forEach.call(imgs, function(img){
+        if (!img.complete){
+          pending++;
+          img.addEventListener("load", function(){ if (--pending <= 0) ready(); });
+          img.addEventListener("error", function(){ if (--pending <= 0) ready(); });
+        }
+      });
+      if (!pending) ready();
+    }
+    setTimeout(go, 80);
+  }
+
+  $("btnPrint").addEventListener("click", printReport);
+
+  $("btnSave").addEventListener("click", function(){
+    var data = collectForm();
+    if (!data.ref){ setStatus("Ref No. is required before saving.", true); return; }
+    if (!data.equip){ setStatus("Equipment/Line No. is required before saving.", true); return; }
+
+    var existingIdx = reports.findIndex(function(r){ return r.ref === data.ref; });
+    var isUpdate = existingIdx > -1 && (editingId === data.ref || existingIdx > -1);
+
+    if (existingIdx > -1 && editingId !== data.ref){
+      var ok = window.confirm('A report with Ref No. "' + data.ref + '" already exists in the register. Overwrite it?');
+      if (!ok) return;
+    }
+
+    if (existingIdx > -1){
+      reports[existingIdx] = data;
+    } else {
+      reports.push(data);
+    }
+    editingId = data.ref;
+
+    persistReports(function(success){
+      if (success){
+        setStatus("Saved \"" + data.ref + "\" to the register.", false);
+        $("regCount").textContent = reports.length;
+        renderRegisterTable();
+      }
+    });
+  });
+
+  // ---------- Register table ----------
+  function renderRegisterTable(){
+    var wrap = $("regTableWrap");
+    var q = ($("regSearch").value || "").toLowerCase().trim();
+    var list = reports.filter(function(r){
+      if (!q) return true;
+      return (r.ref || "").toLowerCase().indexOf(q) > -1 ||
+             (r.equip || "").toLowerCase().indexOf(q) > -1 ||
+             (r.desc || "").toLowerCase().indexOf(q) > -1;
+    });
+    list.sort(function(a,b){ return (a.ref || "").localeCompare(b.ref || ""); });
+
+    $("regCount").textContent = reports.length;
+    $("regHint").textContent = list.length + " of " + reports.length + " report(s)";
+
+    if (!list.length){
+      wrap.innerHTML = '<div class="empty">No reports registered yet. Fill in the form under "New / Edit Report" and click "Save to register".</div>';
+      return;
+    }
+
+    var html = '<table class="reg"><thead><tr>' +
+      '<th>Ref No.</th><th>Equipment/Line No.</th><th>Description</th><th>Approved by</th><th></th>' +
+      '</tr></thead><tbody>';
+    list.forEach(function(r){
+      html += '<tr>' +
+        '<td class="refno">' + escapeHtml(r.ref || "") + '</td>' +
+        '<td>' + escapeHtml(r.equip || "") + '</td>' +
+        '<td>' + escapeHtml(r.desc || "") + '</td>' +
+        '<td>' + escapeHtml(r.appName || "—") + '</td>' +
+        '<td><div class="rowbtns">' +
+          '<button class="btn ghost" data-act="load" data-ref="' + escapeHtml(r.ref) + '">Open</button>' +
+          '<button class="btn danger" data-act="del" data-ref="' + escapeHtml(r.ref) + '">Delete</button>' +
+        '</div></td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+
+    wrap.querySelectorAll('button[data-act="load"]').forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var r = reports.find(function(x){ return x.ref === btn.dataset.ref; });
+        if (!r) return;
+        editingId = r.ref;
+        fillForm(r);
+        document.querySelector('.tab-btn[data-tab="editor"]').click();
+      });
+    });
+    wrap.querySelectorAll('button[data-act="del"]').forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var ok = window.confirm('Delete report "' + btn.dataset.ref + '" from the register? This cannot be undone.');
+        if (!ok) return;
+        reports = reports.filter(function(x){ return x.ref !== btn.dataset.ref; });
+        persistReports(function(success){
+          if (success) renderRegisterTable();
+        });
+      });
+    });
+  }
+
+  $("regSearch").addEventListener("input", renderRegisterTable);
+
+  // ---------- Init ----------
+  $("f-piccount").addEventListener("change", function(){
+    var next = Math.min(MAX_PICS, Math.max(1, parseInt(this.value, 10) || 4));
+    // Dropping the count discards photos beyond the new limit.
+    for (var i = next; i < MAX_PICS; i++){ pics[i] = null; picFit[i] = "cover"; }
+    picCount = next;
+    buildPicGrid();
+    updatePreview();
+  });
+
+  buildPicGrid();
+  loadReports(function(){
+    $("regCount").textContent = reports.length;
+    clearForm();
+    renderRegisterTable();
+  });
+
+})();
+</script>
+</body>
+</html>
